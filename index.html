@@ -156,27 +156,23 @@
             signInWithPopup(auth, provider).catch(err => console.error("Login Error", err));
         });
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                if (user.uid === ADMIN_UID) {
-                    authUI.innerHTML = `
-                        <div class="d-flex align-items-center gap-3">
-                            <span class="badge bg-success">Admin Mode</span>
-                            <button id="logoutBtn" class="btn btn-sm btn-outline-light rounded-pill">Logout</button>
-                        </div>
-                    `;
-                    document.getElementById("logoutBtn").onclick = () => signOut(auth);
-                    // You can trigger admin-only features here (e.g., "Add Event" buttons)
-                    console.log("Welcome, Admin.");
-                } else {
-                    alert("Unauthorized. You are not the administrator.");
-                    signOut(auth);
-                }
-            } else {
-                authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
-                document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
-            }
-        });
+        // --- Inside your <script type="module"> in the main file ---
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        if (user.uid === ADMIN_UID) {
+            // Redirect to dashboard
+            window.location.href = "dashboard.html"; 
+        } else {
+            alert("Unauthorized. You are not the administrator.");
+            signOut(auth);
+        }
+    } else {
+        // UI for logged out state
+        authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
+        document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
+    }
+});
 
         // --- Data Fetching Logic ---
         async function initApp() {
@@ -280,3 +276,4 @@
     </script>
 </body>
 </html>
+
