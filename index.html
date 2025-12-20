@@ -1,34 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fest Flow | Live Events</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
+
     <style>
-        /* Existing styles... */
-        
-        /* Debug Console Styles */
-        #debug-console {
+        :root {
+            --primary: #6610f2;
+            --accent: #20c997;
+        }
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            background: linear-gradient(120deg, #0d6efd, #6610f2, #20c997);
+            background-size: 300% 300%;
+            color: #fff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* Admin Controls */
+        .admin-nav {
             position: fixed;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.85);
-            color: #00ff00;
-            font-family: monospace;
-            font-size: 12px;
-            padding: 10px;
-            border-radius: 8px;
-            z-index: 9999;
-            max-height: 100px;
-            overflow-y: auto;
-            border: 1px solid #333;
-            pointer-events: none;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .btn-google {
+            background: white;
+            color: #444;
+            border-radius: 50px;
+            padding: 8px 20px;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .btn-google:hover {
+            transform: scale(1.05);
+            background: #f8f9fa;
+        }
+
+        header {
+            backdrop-filter: blur(14px);
+            background: rgba(0, 0, 0, 0.25);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .horizontal-section {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .horizontal-wrapper {
+            display: flex;
+            gap: 48px;
+            padding: 0 12vw;
+        }
+
+        .event-card {
+            min-width: 360px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #222;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            transform: translateY(60px);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .event-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 35px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            background: linear-gradient(120deg, #ddd, #f5f5f5);
+        }
+
+        .card-body { padding: 22px; }
+        .event-title { font-weight: 700; color: var(--primary); font-size: 1.15rem; line-height: 1.3; }
+        #loader { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); z-index: 999; color: #fff; }
+        footer { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); }
+
+        @media (max-width: 768px) {
+            .event-card { min-width: 300px; }
+            .horizontal-wrapper { padding: 0 8vw; gap: 32px; }
         }
     </style>
 </head>
+
 <body>
 
     <div id="loader">🚀 Loading Live Events...</div>
-    
-    <div id="debug-console">System: Initializing Fest Flow Debugger...</div>
 
     <div class="admin-nav" id="authUI">
         <button id="loginBtn" class="btn-google">Admin Login</button>
@@ -50,6 +129,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        // Added Auth Imports
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -65,42 +145,20 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-        
-        const ADMIN_UID = "rTFKeYgo6sX65isgGc5mvaEY3BI3";
-        const debug = document.getElementById("debug-console");
 
-        function log(msg, isError = false) {
-            const time = new Date().toLocaleTimeString();
-            debug.innerHTML += `<div style="color: ${isError ? '#ff4444' : '#00ff00'}">[${time}] ${msg}</div>`;
-            debug.scrollTop = debug.scrollHeight;
-            console.log(msg);
-        }
+        const ADMIN_UID = "rTFKeYgo6sX65isgGc5mvaEY3BI3";
 
         // --- Auth Logic ---
         const authUI = document.getElementById("authUI");
+        const loginBtn = document.getElementById("loginBtn");
 
-        async function handleLogin() {
-            log("Attempting Google Login...");
-            try {
-                const result = await signInWithPopup(auth, provider);
-                log("Login Successful! User: " + result.user.email);
-            } catch (error) {
-                log("AUTH ERROR: " + error.code, true);
-                log("MESSAGE: " + error.message, true);
-                
-                if (error.code === 'auth/popup-blocked') {
-                    alert("Popup blocked! Please allow popups for this site in your browser settings.");
-                } else if (error.code === 'auth/operation-not-allowed') {
-                    alert("Google Sign-in is not enabled in Firebase Console > Authentication > Sign-in Method.");
-                }
-            }
-        }
+        loginBtn.addEventListener("click", () => {
+            signInWithPopup(auth, provider).catch(err => console.error("Login Error", err));
+        });
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                log("User detected: " + user.uid);
                 if (user.uid === ADMIN_UID) {
-                    log("Access Granted: Admin confirmed.");
                     authUI.innerHTML = `
                         <div class="d-flex align-items-center gap-3">
                             <span class="badge bg-success">Admin Mode</span>
@@ -108,40 +166,41 @@
                         </div>
                     `;
                     document.getElementById("logoutBtn").onclick = () => signOut(auth);
+                    // You can trigger admin-only features here (e.g., "Add Event" buttons)
+                    console.log("Welcome, Admin.");
                 } else {
-                    log("Access Denied: UID mismatch.", true);
-                    alert("Unauthorized UID: " + user.uid);
+                    alert("Unauthorized. You are not the administrator.");
                     signOut(auth);
                 }
             } else {
-                log("No user signed in.");
                 authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
-                document.getElementById("loginBtn").onclick = handleLogin;
+                document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
             }
         });
 
-        // --- Rest of your App Logic (initApp, renderCard, startGSAP) remains exactly as before ---
+        // --- Data Fetching Logic ---
         async function initApp() {
-            log("Fetching event data...");
             const container = document.getElementById("eventContainer");
             const loader = document.getElementById("loader");
 
             try {
                 const eventsSnapshot = await getDocs(collection(db, "events"));
-                log(`Found ${eventsSnapshot.docs.length} event folders.`);
 
                 for (const eventDoc of eventsSnapshot.docs) {
-                    const docRef = doc(db, "events", eventDoc.id, "details", "event");
+                    const eventId = eventDoc.id;
+                    const docRef = doc(db, "events", eventId, "details", "event");
                     const docSnap = await getDoc(docRef);
 
                     if (docSnap.exists()) {
                         const raw = docSnap.data();
                         const key = Object.keys(raw)[0];
                         const ev = raw[key];
+
                         renderCard({
                             title: ev.title,
                             desc: ev.description,
                             category: ev.category,
+                            age: ev.ageLimit,
                             img: ev.image || "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800",
                             code: ev.eventCode,
                             type: ev.type
@@ -150,18 +209,16 @@
                 }
                 loader.style.display = "none";
                 startGSAP();
-                log("UI Rendering complete.");
             } catch (err) {
-                log("Database Error: " + err.message, true);
                 loader.innerText = "Failed to load events.";
+                console.error(err);
             }
         }
 
-        // Include your renderCard and startGSAP functions here...
         function renderCard(ev) {
             const container = document.getElementById("eventContainer");
             let finalImg = ev.img;
-            if (!ev.img || ev.img.trim() === "" || (typeof ev.img === 'string' && ev.img.includes("linkedin.com/pulse"))) {
+            if (!ev.img || ev.img.trim() === "" || ev.img.includes("linkedin.com/pulse")) {
                 finalImg = "https://via.placeholder.com/400x200?text=Fest+Flow";
             }
 
@@ -184,6 +241,26 @@
 
         function startGSAP() {
             gsap.registerPlugin(ScrollTrigger);
+            gsap.to("body", {
+                backgroundPosition: "300% 300%",
+                duration: 20,
+                repeat: -1,
+                yoyo: true,
+                ease: "linear"
+            });
+
+            gsap.to(".event-card", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: "power3.out",
+                stagger: 0.25,
+                scrollTrigger: {
+                    trigger: ".horizontal-section",
+                    start: "top 85%"
+                }
+            });
+
             const wrapper = document.querySelector(".horizontal-wrapper");
             gsap.to(wrapper, {
                 x: () => -(wrapper.scrollWidth - window.innerWidth + 150),
@@ -197,7 +274,6 @@
                     invalidateOnRefresh: true
                 }
             });
-            gsap.to(".event-card", { opacity: 1, y: 0, stagger: 0.1 });
         }
 
         initApp();
