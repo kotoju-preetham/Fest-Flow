@@ -208,24 +208,33 @@
 
         function renderCard(ev) {
             const container = document.getElementById("eventContainer");
+    
+            // 1. Validation: Use placeholder if image is empty or not a direct link
+            // Note: Most social media/article links won't work in <img> tags.
+            let finalImg = ev.img;
+    
+            if (!ev.img || ev.img.trim() === "" || ev.img.includes("linkedin.com/pulse")) {
+                finalImg = "https://via.placeholder.com/400x200?text=Fest+Flow";
+            }
+
             const div = document.createElement("div");
             div.className = "event-card";
+            
+            // 2. Proper HTML construction to avoid the "attribute-pasting" error
             div.innerHTML = `
-                <img src="${ev.img}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200?text=Fest+Flow'">
+                <img src="${finalImg}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200?text=Fest+Flow'">
                 <div class="card-body">
                     <span class="badge bg-primary mb-2">${ev.type}</span>
-                    <span class="badge bg-light text-dark border ms-2">${ev.category}</span>
-                    <h5 class="event-title mt-2">${ev.title}</h5>
-                    <p>${ev.desc}</p>
+                    <h5 class="event-title">${ev.title}</h5>
+                    <p style="font-size:0.85rem; color:#666; height: 65px; overflow: hidden;">${ev.desc}</p>
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <small class="text-muted"><strong>Code:</strong> ${ev.code}</small>
-                        <small class="text-danger">Age: ${ev.age}</small>
+                        <span class="badge bg-light text-dark border">${ev.category}</span>
                     </div>
                 </div>
             `;
             container.appendChild(div);
         }
-
         function startGSAP() {
             gsap.registerPlugin(ScrollTrigger);
 
@@ -269,3 +278,4 @@
 
 </body>
 </html>
+
