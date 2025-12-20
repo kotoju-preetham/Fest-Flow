@@ -6,10 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fest Flow | Live Events</title>
 
-    <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- GSAP -->
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/ScrollTrigger.min.js"></script>
 
@@ -28,14 +26,36 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
-        /* Header */
+        /* Admin Controls */
+        .admin-nav {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .btn-google {
+            background: white;
+            color: #444;
+            border-radius: 50px;
+            padding: 8px 20px;
+            font-weight: 600;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .btn-google:hover {
+            transform: scale(1.05);
+            background: #f8f9fa;
+        }
+
         header {
             backdrop-filter: blur(14px);
             background: rgba(0, 0, 0, 0.25);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Horizontal Section */
         .horizontal-section {
             height: 100vh;
             display: flex;
@@ -49,7 +69,6 @@
             padding: 0 12vw;
         }
 
-        /* Event Card */
         .event-card {
             min-width: 360px;
             background: rgba(255, 255, 255, 0.96);
@@ -74,86 +93,44 @@
             background: linear-gradient(120deg, #ddd, #f5f5f5);
         }
 
-        .card-body {
-            padding: 22px;
-        }
-
-        .event-title {
-            font-weight: 700;
-            color: var(--primary);
-            font-size: 1.15rem;
-            line-height: 1.3;
-        }
-
-        .card-body p {
-            font-size: 0.85rem;
-            color: #555;
-            line-height: 1.5;
-        }
-
-        /* Loader */
-        #loader {
-            position: fixed;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(10px);
-            z-index: 999;
-            color: #fff;
-            font-size: 1.1rem;
-        }
-
-        footer {
-            background: rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(10px);
-        }
+        .card-body { padding: 22px; }
+        .event-title { font-weight: 700; color: var(--primary); font-size: 1.15rem; line-height: 1.3; }
+        #loader { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(10px); z-index: 999; color: #fff; }
+        footer { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); }
 
         @media (max-width: 768px) {
-            .event-card {
-                min-width: 300px;
-            }
-
-            .horizontal-wrapper {
-                padding: 0 8vw;
-                gap: 32px;
-            }
-
-            header h1 {
-                font-size: 2rem;
-            }
+            .event-card { min-width: 300px; }
+            .horizontal-wrapper { padding: 0 8vw; gap: 32px; }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Loader -->
     <div id="loader">🚀 Loading Live Events...</div>
 
-    <!-- Header -->
+    <div class="admin-nav" id="authUI">
+        <button id="loginBtn" class="btn-google">Admin Login</button>
+    </div>
+
     <header class="text-white text-center py-5">
         <h1 class="display-4 fw-bold">Fest Flow</h1>
         <p class="opacity-75">Live Event Management System</p>
     </header>
 
-    <!-- Horizontal Scroll Section -->
     <section class="horizontal-section">
         <div class="horizontal-wrapper" id="eventContainer"></div>
     </section>
 
-    <!-- Footer -->
     <footer class="text-center py-4">
         <p class="opacity-75 mb-0">&copy; 2025 Fest Flow | K Preetham</p>
     </footer>
 
-    <!-- Firebase + Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        // Added Auth Imports
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDLwOECnCBLKaM81XAPkPWNncJnb6VYLUo",
@@ -166,7 +143,42 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
+        const ADMIN_UID = "rTFKeYgo6sX65isgGc5mvaEY3BI3";
+
+        // --- Auth Logic ---
+        const authUI = document.getElementById("authUI");
+        const loginBtn = document.getElementById("loginBtn");
+
+        loginBtn.addEventListener("click", () => {
+            signInWithPopup(auth, provider).catch(err => console.error("Login Error", err));
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.uid === ADMIN_UID) {
+                    authUI.innerHTML = `
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="badge bg-success">Admin Mode</span>
+                            <button id="logoutBtn" class="btn btn-sm btn-outline-light rounded-pill">Logout</button>
+                        </div>
+                    `;
+                    document.getElementById("logoutBtn").onclick = () => signOut(auth);
+                    // You can trigger admin-only features here (e.g., "Add Event" buttons)
+                    console.log("Welcome, Admin.");
+                } else {
+                    alert("Unauthorized. You are not the administrator.");
+                    signOut(auth);
+                }
+            } else {
+                authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
+                document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
+            }
+        });
+
+        // --- Data Fetching Logic ---
         async function initApp() {
             const container = document.getElementById("eventContainer");
             const loader = document.getElementById("loader");
@@ -176,7 +188,6 @@
 
                 for (const eventDoc of eventsSnapshot.docs) {
                     const eventId = eventDoc.id;
-
                     const docRef = doc(db, "events", eventId, "details", "event");
                     const docSnap = await getDoc(docRef);
 
@@ -196,10 +207,8 @@
                         });
                     }
                 }
-
                 loader.style.display = "none";
                 startGSAP();
-
             } catch (err) {
                 loader.innerText = "Failed to load events.";
                 console.error(err);
@@ -208,19 +217,13 @@
 
         function renderCard(ev) {
             const container = document.getElementById("eventContainer");
-    
-            // 1. Validation: Use placeholder if image is empty or not a direct link
-            // Note: Most social media/article links won't work in <img> tags.
             let finalImg = ev.img;
-    
             if (!ev.img || ev.img.trim() === "" || ev.img.includes("linkedin.com/pulse")) {
                 finalImg = "https://via.placeholder.com/400x200?text=Fest+Flow";
             }
 
             const div = document.createElement("div");
             div.className = "event-card";
-            
-            // 2. Proper HTML construction to avoid the "attribute-pasting" error
             div.innerHTML = `
                 <img src="${finalImg}" class="card-img" onerror="this.src='https://via.placeholder.com/400x200?text=Fest+Flow'">
                 <div class="card-body">
@@ -235,9 +238,9 @@
             `;
             container.appendChild(div);
         }
+
         function startGSAP() {
             gsap.registerPlugin(ScrollTrigger);
-
             gsap.to("body", {
                 backgroundPosition: "300% 300%",
                 duration: 20,
@@ -275,7 +278,5 @@
 
         initApp();
     </script>
-
 </body>
 </html>
-
