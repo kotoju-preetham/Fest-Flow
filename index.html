@@ -158,21 +158,22 @@
 
         // --- Inside your <script type="module"> in the main file ---
 
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        if (user.uid === ADMIN_UID) {
-            // Redirect to dashboard
-            window.location.href = "dashboard.html"; 
-        } else {
-            alert("Unauthorized. You are not the administrator.");
-            signOut(auth);
-        }
-    } else {
-        // UI for logged out state
-        authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
-        document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
-    }
-});
+// --- Inside index.html <script type="module"> ---
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (user.uid === ADMIN_UID) {
+                    // Redirect to the dashboard file in your GitHub repo
+                    window.location.href = "dashboard.html"; 
+                } else {
+                    alert("Unauthorized. Access Denied.");
+                    signOut(auth);
+                }
+            } else {
+                authUI.innerHTML = `<button id="loginBtn" class="btn-google">Admin Login</button>`;
+                document.getElementById("loginBtn").onclick = () => signInWithPopup(auth, provider);
+            }
+        });
 
         // --- Data Fetching Logic ---
         async function initApp() {
@@ -276,4 +277,5 @@ onAuthStateChanged(auth, (user) => {
     </script>
 </body>
 </html>
+
 
